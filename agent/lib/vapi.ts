@@ -44,7 +44,17 @@ export async function startOutboundCall(params: StartCallParams) {
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Vapi call creation failed (${res.status}): ${body}`);
+    // Vapi returns {message, error, ...}; prefer its human-readable message
+    // over dumping the whole payload into the dashboard's error toast.
+    let detail = body;
+    try {
+      const parsed = JSON.parse(body);
+      const message = Array.isArray(parsed.message) ? parsed.message.join("; ") : parsed.message;
+      detail = message || parsed.error || body;
+    } catch {
+      // non-JSON body — keep the raw text
+    }
+    throw new Error(`Vapi (${res.status}): ${detail}`);
   }
 
   return res.json() as Promise<{ id: string; status: string }>;

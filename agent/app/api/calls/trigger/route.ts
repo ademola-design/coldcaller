@@ -30,13 +30,23 @@ export async function POST(req: Request) {
     return Response.json({ error: "Lead has requested no further contact" }, { status: 409 });
   }
 
-  const vapiCall = await startOutboundCall({
-    leadId: lead.id,
-    phoneNumber: lead.phone_number,
-    firstName: lead.first_name,
-    lastName: lead.last_name,
-    address: lead.address,
-  });
+  // Surface the provider's reason rather than a bare 500 — the dashboard shows
+  // this text, and failures here are usually actionable (unsupported
+  // destination, bad number format, plan limits) rather than genuine bugs.
+  let vapiCall: { id: string; status: string };
+  try {
+    vapiCall = await startOutboundCall({
+      leadId: lead.id,
+      phoneNumber: lead.phone_number,
+      firstName: lead.first_name,
+      lastName: lead.last_name,
+      address: lead.address,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error starting call";
+    console.error("startOutboundCall failed", { leadId: lead.id, message });
+    return Response.json({ error: message }, { status: 502 });
+  }
 
   const { error: insertError } = await supabase.from("calls").insert({
     provider_call_id: vapiCall.id,
