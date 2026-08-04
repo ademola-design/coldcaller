@@ -25,7 +25,17 @@ export async function POST(req: Request) {
   }
 
   const supabase = getSupabaseAdmin();
-  const leadId: string | null = message.customer?.externalId ?? null;
+
+  // Outbound phone calls carry the lead id on customer.externalId. Web calls
+  // (browser testing) have no customer, so fall back to variableValues, which
+  // Vapi echoes back on the artifact. Without this a web call can't be tied to
+  // a lead and every tool call fails.
+  const leadId: string | null =
+    message.customer?.externalId ??
+    message.artifact?.variableValues?.leadId ??
+    message.call?.assistantOverrides?.variableValues?.leadId ??
+    null;
+
   const providerCallId: string | undefined = message.call?.id;
 
   switch (message.type) {

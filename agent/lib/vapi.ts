@@ -37,6 +37,9 @@ export async function startOutboundCall(params: StartCallParams) {
           firstName: params.firstName,
           lastName: params.lastName ?? "",
           address: params.address ?? "",
+          // Redundant with customer.externalId — gives the webhook a second
+          // way to resolve the lead if the customer object is ever absent.
+          leadId: params.leadId,
         },
       },
     }),
